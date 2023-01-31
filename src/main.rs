@@ -13,8 +13,15 @@ use crate::mvdup::fs::is_regular_file;
 
 #[derive(Parser, Debug)]
 struct Args {
+    /// Source files
     source: String,
+
+    /// Destination directory
     destination: String,
+
+    /// Process first N files only
+    #[arg(long, value_name = "NUMBER OF FILES")]
+    take: Option<usize>,
 }
 
 fn main() {
@@ -22,9 +29,11 @@ fn main() {
 
     let dst_dir = valid_destination(args.destination.as_str());
 
-    let srcs = get_sources(args.source);
+    let mut srcs = get_sources(args.source);
 
     mvdup::database::open_at(dst_dir);
+
+    let mut take_count: usize = 0;
 
     for src in srcs {
         match src {
@@ -39,7 +48,14 @@ fn main() {
                     continue;
                 }
 
-                let dst = PathBuf::from(dst_dir).with_file_name(filename);
+                if let Some(take_n) = args.take {
+                    if take_count >= take_n {
+                        break;
+                    }
+                    take_count += 1;
+                }
+
+                let dst = PathBuf::from(dst_dir).join(filename);
                 let hash = mvdup::hash::hash_of(&src).unwrap();
                 println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
 
