@@ -33,8 +33,6 @@ pub fn is_duplicated(dst: &Path, hash_val: String) -> (bool, String) {
         |row| row.get(0),
     );
 
-    println!("{:?}", result);
-
     match result {
         Ok(filename) => (true, filename),
         Err(QueryReturnedNoRows) => (false, String::from("")),

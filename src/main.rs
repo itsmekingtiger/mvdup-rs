@@ -64,7 +64,7 @@ fn main() {
                 if isdup {
                     todo!("add to temporal list")
                 } else {
-                    println!("moving file from {:?} to {:?}", src, dst);
+                    println!("rename {:?} → {:?}", src, dst);
                     fs::rename(src, dst).expect("failed to move file");
                 }
             }
