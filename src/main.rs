@@ -1,9 +1,11 @@
 mod mvdup;
 
-use core::panic;
-use std::path::Path;
-
 use clap::Parser;
+use core::panic;
+use glob::{glob, Paths};
+
+use std::convert::AsRef;
+use std::path::Path;
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -16,7 +18,17 @@ fn main() {
 
     let dst = valid_destination(args.destination.as_str());
 
-    println!("Moving {} to {:?}!", args.source, dst);
+    let srcs = get_sources(args.source);
+
+    for src in srcs {
+        match src {
+            Ok(src) => {
+                let src: Box<Path> = src.into();
+                println!("{:?} {:?}", src.clone(), mvdup::hash::hash_of(src))
+            }
+            Err(e) => println!("{:?}", e),
+        }
+    }
 }
 
 /// Check is valid directory and return Path.
@@ -34,4 +46,8 @@ fn valid_destination<'a>(path: &'a str) -> &'a Path {
     }
 
     dst_path
+}
+
+fn get_sources<T: AsRef<str>>(path: T) -> Paths {
+    glob(path.as_ref()).expect("Failed to read glob pattern")
 }
