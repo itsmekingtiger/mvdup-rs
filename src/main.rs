@@ -3,9 +3,14 @@ mod mvdup;
 use clap::Parser;
 use core::panic;
 use glob::{glob, Paths};
+use mvdup::database::is_duplicated;
+use mvdup::utils::StringUtils;
+use rusqlite::Connection;
+use std::fs;
+use std::rc::Rc;
 
 use std::convert::AsRef;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
 struct Args {
@@ -16,15 +21,31 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    let dst = valid_destination(args.destination.as_str());
+    let dst_dir = valid_destination(args.destination.as_str());
 
     let srcs = get_sources(args.source);
+
+    mvdup::database::open_at(dst_dir);
 
     for src in srcs {
         match src {
             Ok(src) => {
-                let src: Box<Path> = src.into();
-                println!("{:?} {:?}", src.clone(), mvdup::hash::hash_of(src))
+                let src = Rc::new(src);
+                let filename = src.file_name().expect("no filename in");
+
+                // let src: Box<Path> = src.into();
+                let mut dst = PathBuf::from(dst_dir).with_file_name(filename);
+                let hash = mvdup::hash::hash_of(&*src.clone()).unwrap();
+                println!("{:?} {}", src, hash.substring(0, 8));
+
+                let (isdup, filename) = mvdup::database::is_duplicated(dst_dir, hash);
+
+                if isdup {
+                    todo!("add to temporal list")
+                } else {
+                    println!("moving file from {:?} to {:?}", src, dst);
+                    fs::rename(&*src, dst).expect("failed to move file");
+                }
             }
             Err(e) => println!("{:?}", e),
         }
