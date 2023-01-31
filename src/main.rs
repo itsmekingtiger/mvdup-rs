@@ -9,6 +9,8 @@ use std::convert::AsRef;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::mvdup::fs::is_regular_file;
+
 #[derive(Parser, Debug)]
 struct Args {
     source: String,
@@ -29,11 +31,19 @@ fn main() {
             Ok(src) => {
                 let filename = src.file_name().expect("no filename in");
 
+                if is_regular_file(src.as_path()).unwrap() == false {
+                    println!(
+                        "{} is not regular file, will be skipped",
+                        src.to_str().unwrap()
+                    );
+                    continue;
+                }
+
                 let dst = PathBuf::from(dst_dir).with_file_name(filename);
                 let hash = mvdup::hash::hash_of(&src).unwrap();
-                println!("{:?} {}", src, hash.substring(0, 8));
+                println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
 
-                let (isdup, filename) = mvdup::database::is_duplicated(dst_dir, hash);
+                let (isdup, exist_filename) = mvdup::database::is_duplicated(dst_dir, hash);
 
                 if isdup {
                     todo!("add to temporal list")
