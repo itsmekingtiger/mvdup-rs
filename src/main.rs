@@ -30,12 +30,10 @@ fn main() {
     for src in srcs {
         match src {
             Ok(src) => {
-                let src = Rc::new(src);
                 let filename = src.file_name().expect("no filename in");
 
-                // let src: Box<Path> = src.into();
-                let mut dst = PathBuf::from(dst_dir).with_file_name(filename);
-                let hash = mvdup::hash::hash_of(&*src.clone()).unwrap();
+                let dst = PathBuf::from(dst_dir).with_file_name(filename);
+                let hash = mvdup::hash::hash_of(&src).unwrap();
                 println!("{:?} {}", src, hash.substring(0, 8));
 
                 let (isdup, filename) = mvdup::database::is_duplicated(dst_dir, hash);
@@ -44,7 +42,7 @@ fn main() {
                     todo!("add to temporal list")
                 } else {
                     println!("moving file from {:?} to {:?}", src, dst);
-                    fs::rename(&*src, dst).expect("failed to move file");
+                    fs::rename(src, dst).expect("failed to move file");
                 }
             }
             Err(e) => println!("{:?}", e),
