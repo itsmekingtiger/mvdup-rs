@@ -3,13 +3,10 @@ mod mvdup;
 use clap::Parser;
 use core::panic;
 use glob::{glob, Paths};
-use mvdup::database::is_duplicated;
 use mvdup::utils::StringUtils;
-use rusqlite::Connection;
-use std::fs;
-use std::rc::Rc;
 
 use std::convert::AsRef;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser, Debug)]
