@@ -8,8 +8,8 @@ fn __path(path: &Path) -> PathBuf {
     return path;
 }
 
-pub fn open_at(path: &Path) {
-    let conn = Connection::open(__path(path)).expect("Failed to open database");
+pub fn open_at(dst: &Path) {
+    let conn = Connection::open(__path(dst)).expect("Failed to open database");
 
     conn.execute(
         "create table if not exists files (
@@ -21,7 +21,7 @@ pub fn open_at(path: &Path) {
     .expect("failed to create table");
 }
 
-pub fn is_duplicated(dst: &Path, hash_val: String) -> (bool, String) {
+pub fn is_duplicated(dst: &Path, hash_val: &str) -> (bool, String) {
     let conn = Connection::open(__path(dst)).expect("Failed to open database");
     let result: Result<String> = conn.query_row(
         "select file_name from files where hash_value = ?1",
@@ -36,6 +36,31 @@ pub fn is_duplicated(dst: &Path, hash_val: String) -> (bool, String) {
     }
 }
 
+pub fn add(dst: &Path, hash_val: String, new_name: String) {
+    let conn = Connection::open(__path(dst)).expect("Failed to open database");
+    conn.execute(
+        "INSERT INTO files (
+            file_name,
+            hash_value
+        ) VALUES (
+            ?1,
+            ?2
+        )",
+        [new_name, hash_val],
+    )
+    .expect("failed to insert table");
+}
+
 pub fn rename(dst: &Path, hash_val: String, new_name: String) {
-    todo!()
+    let conn = Connection::open(__path(dst)).expect("Failed to open database");
+
+    conn.execute(
+        "UPDATE files SET
+            file_name = ?1
+        WHERE
+            hash_value = ?2
+        ",
+        [new_name, hash_val],
+    )
+    .expect("failed to rename file");
 }
