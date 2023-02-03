@@ -1,8 +1,4 @@
-use std::{
-    f32::consts::E,
-    path::{Path, PathBuf},
-    rc::Rc,
-};
+use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, Error::QueryReturnedNoRows, Result};
 
@@ -35,11 +31,11 @@ pub fn is_duplicated(dst: &Path, hash_val: String) -> (bool, String) {
 
     match result {
         Ok(filename) => (true, filename),
-        Err(QueryReturnedNoRows) => (false, String::from("")),
+        Err(QueryReturnedNoRows) => (false, "".to_string()),
         Err(e) => panic!("something worong: {}", e),
     }
 }
 
-pub fn rename() {
-    //
+pub fn rename(dst: &Path, hash_val: String, new_name: String) {
+    todo!()
 }

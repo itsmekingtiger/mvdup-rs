@@ -51,7 +51,3 @@ impl StringUtils for str {
         self.substring(start, len)
     }
 }
-
-fn asdf() {
-    let sub = "Golden Eagle".substring(0, 6);
-}
