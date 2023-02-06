@@ -23,3 +23,7 @@ pub fn is_dir<P: AsRef<Path>>(path: P) -> Result<bool> {
     let metadata = metadata(path)?;
     return Ok(metadata.is_dir());
 }
+
+pub fn is_exist<P: AsRef<Path>>(path: P) -> bool {
+    path.as_ref().exists()
+}
