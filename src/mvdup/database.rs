@@ -2,13 +2,13 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, Error, Error::QueryReturnedNoRows, Result};
 
-fn __path(path: &Path) -> PathBuf {
-    let mut path = PathBuf::from(path);
+fn __path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut path = PathBuf::from(path.as_ref());
     path.push(".mvdup.db");
     return path;
 }
 
-pub fn open_at(dst: &Path) {
+pub fn open_at<P: AsRef<Path>>(dst: P) {
     let conn = Connection::open(__path(dst)).expect("Failed to open database");
 
     conn.execute(
@@ -21,7 +21,7 @@ pub fn open_at(dst: &Path) {
     .expect("failed to create table");
 }
 
-pub fn is_duplicated(dst: &Path, hash_val: &str) -> (bool, String) {
+pub fn is_duplicated<P: AsRef<Path>>(dst: P, hash_val: &str) -> (bool, String) {
     let conn = Connection::open(__path(dst)).expect("Failed to open database");
     let result: Result<String> = conn.query_row(
         "SELECT file_name FROM files WHERE hash_value = ?1",
@@ -36,7 +36,7 @@ pub fn is_duplicated(dst: &Path, hash_val: &str) -> (bool, String) {
     }
 }
 
-pub fn add(dst: &Path, hash_val: String, new_name: String) {
+pub fn add<P: AsRef<Path>>(dst: P, hash_val: String, new_name: String) {
     let conn = Connection::open(__path(dst)).expect("Failed to open database");
     conn.execute(
         "INSERT INTO files (
@@ -51,7 +51,7 @@ pub fn add(dst: &Path, hash_val: String, new_name: String) {
     .expect("failed to insert table");
 }
 
-pub fn rename(dst: &Path, hash_val: String, new_name: String) {
+pub fn rename<P: AsRef<Path>>(dst: P, hash_val: String, new_name: String) {
     let conn = Connection::open(__path(dst)).expect("Failed to open database");
 
     conn.execute(
