@@ -2,14 +2,16 @@ use core::panic;
 use std::{
     collections::{HashMap, HashSet},
     fs,
-    ops::Sub,
     path::{Path, PathBuf},
 };
 
 use clap::{Parser, Subcommand};
 use glob::{glob, Paths};
 
-use crate::mvdup::{fs::is_regular_file, utils::StringUtils};
+use crate::mvdup::{
+    fs::{is_exist, is_regular_file},
+    utils::StringUtils,
+};
 
 use super::{
     database,
@@ -19,10 +21,10 @@ use super::{
 #[derive(Parser, Debug)]
 pub struct Cli {
     /// Source files
-    pub source: Option<String>,
+    pub source: Option<Vec<String>>,
 
     /// Destination directory
-    pub destination: Option<String>,
+    // pub destination: Option<String>,
 
     /// Process first N files only
     #[arg(long, value_name = "NUMBER OF FILES")]
@@ -87,10 +89,31 @@ impl DuplicationEntry {
 }
 
 pub fn mvdup(args: Cli) {
-    let asdf = args.destination.unwrap();
-    let dst_dir = valid_destination(asdf.as_str());
+    let mut paths: Vec<String> = match args.source {
+        Some(paths) => {
+            if paths.len() < 2 {
+                println!("give me src and dst!");
+                std::process::exit(-1);
+            } else {
+                paths
+            }
+        }
+        None => {
+            println!("give me src and dst!");
+            std::process::exit(-1);
+        }
+    };
 
-    let srcs = get_sources(args.source.unwrap());
+    let dst_dir = paths.pop().unwrap();
+    let dst_dir = valid_destination(dst_dir.as_str());
+
+    let srcs: Vec<_> = paths.iter().map(get_sources).flatten().collect();
+    for src in &srcs {
+        if let Err(src) = src {
+            panic!("failed to read glob pattern: {}", src);
+        }
+    }
+    let srcs: Vec<_> = srcs.into_iter().filter_map(|e| e.ok()).collect();
 
     database::open_at(dst_dir);
 
@@ -98,46 +121,46 @@ pub fn mvdup(args: Cli) {
     let mut take_count: usize = 0;
 
     for src in srcs {
-        match src {
-            Ok(src) => {
-                let filename = src
-                    .file_name()
-                    .expect("no filename in")
-                    .to_os_string()
-                    .into_string()
-                    .expect("can not convert filename into string");
+        let src = PathBuf::from(src);
+        {
+            let filename = src
+                .file_name()
+                .expect("no filename in")
+                .to_os_string()
+                .into_string()
+                .expect("can not convert filename into string");
 
-                if is_regular_file(src.as_path()).unwrap() == false {
-                    println!(
-                        "{} is not regular file, will be skipped",
-                        src.to_str().unwrap()
-                    );
-                    continue;
-                }
-
-                if let Some(take_n) = args.take {
-                    if take_count >= take_n {
-                        break;
-                    }
-                    take_count += 1;
-                }
-
-                let dst = PathBuf::from(dst_dir).join(&filename);
-                let hash = super::hash::hash_of(&src).unwrap();
-                println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
-
-                let (isdup, exist_filename) =
-                    super::database::is_duplicated(dst_dir, hash.as_str());
-
-                if isdup {
-                    manager.put(hash, exist_filename, String::from(src.to_str().unwrap()))
-                } else {
-                    println!("rename {:?} → {:?}", src, dst);
-                    fs::rename(&src, &dst).expect("failed to move file");
-                    super::database::add(dst_dir, hash, filename);
-                }
+            if is_regular_file(src.as_path()).unwrap() == false {
+                println!(
+                    "{} is not regular file, will be skipped",
+                    src.to_str().unwrap()
+                );
+                continue;
             }
-            Err(e) => println!("{:?}", e),
+
+            if let Some(take_n) = args.take {
+                if take_count >= take_n {
+                    break;
+                }
+                take_count += 1;
+            }
+
+            let dst = PathBuf::from(dst_dir).join(&filename);
+            let hash = super::hash::hash_of(&src).unwrap();
+            println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
+
+            let (isdup, exist_filename) = super::database::is_duplicated(dst_dir, hash.as_str());
+
+            if isdup {
+                manager.put(hash, exist_filename, String::from(src.to_str().unwrap()))
+            } else {
+                println!("rename {:?} → {:?}", src, dst);
+                if is_exist(&dst) {
+                    panic!("can not move, {} is already exists!", dst.to_string_lossy());
+                }
+                fs::rename(&src, &dst).expect("failed to move file");
+                super::database::add(dst_dir, hash, filename);
+            }
         }
     }
 
