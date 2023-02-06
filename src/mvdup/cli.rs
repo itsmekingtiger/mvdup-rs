@@ -187,9 +187,13 @@ fn get_sources<T: AsRef<str>>(path: T) -> Paths {
 /// Create database file if is not exists at given path.
 /// Then apply difference of file
 pub fn update(dst_dir: String, verify: bool) {
-    if is_dir(&dst_dir).unwrap() {
-        panic!("{dst_dir} is not valid directory.")
+    match is_dir(&dst_dir) {
+        Ok(true) => (),
+        Ok(false) => panic!("{dst_dir} is not valid directory."),
+        Err(err) => panic!("can not determind {dst_dir} is valid directory: {err}"),
     }
+
+    database::open_at(&dst_dir);
 
     // Listing files, exists and saved
     let exist_files: Vec<_> = list_files(&dst_dir)
