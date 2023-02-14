@@ -140,7 +140,7 @@ pub fn mvdup(args: Cli) {
             }
 
             let dst = PathBuf::from(dst_dir).join(&filename);
-            let hash = super::hash::hash_of(&src).unwrap();
+            let hash = super::hash::hash_of_as_stream(&src).unwrap();
             println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
 
             let (isdup, exist_filename) = super::database::is_duplicated(dst_dir, hash.as_str());
