@@ -1,7 +1,6 @@
 use core::panic;
 use std::{
     collections::{HashMap, HashSet},
-    fs,
     path::{Path, PathBuf},
 };
 
@@ -9,7 +8,7 @@ use clap::{Parser, Subcommand};
 use glob::{glob, Paths};
 
 use crate::mvdup::{
-    fs::{is_exist, is_regular_file},
+    fs::{filename_of, is_regular_file, move_file},
     utils::StringUtils,
 };
 
@@ -123,12 +122,7 @@ pub fn mvdup(args: Cli) {
     for src in srcs {
         let src = PathBuf::from(src);
         {
-            let filename = src
-                .file_name()
-                .expect("no filename in")
-                .to_os_string()
-                .into_string()
-                .expect("can not convert filename into string");
+            let filename = filename_of(&src).expect("can not convert filename into string");
 
             if is_regular_file(src.as_path()).unwrap() == false {
                 println!(
@@ -155,11 +149,11 @@ pub fn mvdup(args: Cli) {
                 manager.put(hash, exist_filename, String::from(src.to_str().unwrap()))
             } else {
                 println!("rename {:?} → {:?}", src, dst);
-                if is_exist(&dst) {
-                    panic!("can not move, {} is already exists!", dst.to_string_lossy());
+
+                match move_file(src, dst) {
+                    Ok(_) => super::database::add(dst_dir, hash, filename),
+                    Err(err) => panic!("{err:?}"),
                 }
-                fs::rename(&src, &dst).expect("failed to move file");
-                super::database::add(dst_dir, hash, filename);
             }
         }
     }
