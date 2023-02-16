@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use rusqlite::{Connection, Error, Error::QueryReturnedNoRows, Result};
+use rusqlite::{named_params, Connection, Error, Error::QueryReturnedNoRows, Result};
 
 fn __path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut path = PathBuf::from(path.as_ref());
@@ -71,6 +71,35 @@ pub fn read_all<P: AsRef<Path>>(dst: P) -> Result<Vec<(String, String)>, Error> 
     let mut stmt = conn.prepare("SELECT file_name, hash_value FROM files")?;
 
     let rows = stmt.query_map([], |r| Ok((r.get(0).unwrap(), r.get(1).unwrap())))?;
+
+    let mut entries: Vec<(String, String)> = Vec::new();
+
+    for row in rows {
+        entries.push(row.unwrap())
+    }
+
+    Ok(entries)
+}
+
+pub fn find<P>(dst: P, target: String) -> Result<Vec<(String, String)>, Error>
+where
+    P: AsRef<Path>,
+{
+    let conn = Connection::open(__path(dst.as_ref())).expect("Failed to open database");
+
+    let mut stmt = conn.prepare(
+        "SELECT
+            file_name, hash_value
+        FROM
+            files
+        WHERE
+                file_name LIKE '%' || ? || '%'
+            OR  hash_value LIKE ? || '%'",
+    )?;
+
+    let rows = stmt.query_map((target.clone(), target), |r| {
+        Ok((r.get(0).unwrap(), r.get(1).unwrap()))
+    })?;
 
     let mut entries: Vec<(String, String)> = Vec::new();
 

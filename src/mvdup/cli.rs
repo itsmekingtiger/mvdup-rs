@@ -43,6 +43,15 @@ pub enum Commands {
         #[arg(long)]
         verify: bool,
     },
+
+    /// Find entry of database
+    Grep {
+        /// 검색할 문자열
+        target: String,
+
+        /// 검색할 데이터베이스 경로
+        path: Option<String>,
+    },
 }
 
 struct DuplicataionManager {
@@ -241,4 +250,18 @@ pub fn update(dst_dir: String, verify: bool) {
     }
 
     todo!()
+}
+
+pub fn find<S: AsRef<str>>(dst_dir: String, target: S) {
+    database::open_at(&dst_dir);
+
+    let entries =
+        database::find(&dst_dir, target.as_ref().to_string()).expect("failed to query database");
+
+    let total = entries.len();
+
+    println!("total {}", total);
+    for entry in entries {
+        println!("{} {}", &entry.1[0..7], entry.0);
+    }
 }
