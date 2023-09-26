@@ -37,6 +37,15 @@ $ mvdup update --verify taret/dir
 
 
 
+*특정 해시값을 가진 파일 이동*
+```sh
+$ mvdup grep 05d5880
+$ mvdup rm --cached 05d5880
+$ mvdup rm --cached ../video 05d5880
+```
+
+
+
 
 
 

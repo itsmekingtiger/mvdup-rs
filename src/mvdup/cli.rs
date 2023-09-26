@@ -46,6 +46,15 @@ pub enum Commands {
         #[arg(long)]
         verify: bool,
     },
+
+    /// Find entry of database
+    Grep {
+        /// 검색할 문자열
+        target: String,
+
+        /// 검색할 데이터베이스 경로
+        path: Option<String>,
+    },
 }
 
 struct DuplicationManager {
@@ -146,7 +155,7 @@ pub fn mvdup(args: Cli) {
             }
 
             let dst = PathBuf::from(dst_dir).join(&filename);
-            let hash = super::hash::hash_of(&src).unwrap();
+            let hash = super::hash::hash_of_as_stream(&src).unwrap();
             println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
 
             let (isdup, exist_filename) = super::database::is_duplicated(dst_dir, &passwd, hash.as_str());
@@ -249,4 +258,20 @@ pub fn update(dst_dir: String, verify: bool) {
     }
 
     todo!()
+}
+
+pub fn find<S: AsRef<str>>(dst_dir: String, target: S) {
+    let passwd = rpassword::prompt_password("Your password: ").unwrap();
+
+    database::open_at(&dst_dir, &passwd);
+
+    let entries =
+        database::find(&dst_dir, &passwd, target.as_ref().to_string()).expect("failed to query database");
+
+    let total = entries.len();
+
+    println!("total {}", total);
+    for entry in entries {
+        println!("{} {}", &entry.1[0..7], entry.0);
+    }
 }

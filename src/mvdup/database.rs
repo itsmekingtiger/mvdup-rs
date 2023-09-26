@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use rusqlite::{Connection, Error, Error::QueryReturnedNoRows, OpenFlags, Result};
 
 
-
 /// For sqlite options, see:
 ///     https://www.sqlite.org/c3ref/open.html
 ///     https://www.sqlite.org/pragma.html
@@ -105,6 +104,35 @@ pub fn read_all<P: AsRef<Path>>(dst: P, pass: &str) -> Result<Vec<(String, Strin
     let mut stmt = conn.prepare("SELECT file_name, hash_value FROM files")?;
 
     let rows = stmt.query_map([], |r| Ok((r.get(0).unwrap(), r.get(1).unwrap())))?;
+
+    let mut entries: Vec<(String, String)> = Vec::new();
+
+    for row in rows {
+        entries.push(row.unwrap())
+    }
+
+    Ok(entries)
+}
+
+pub fn find<P>(dst: P, pass: &str, target: String) -> Result<Vec<(String, String)>, Error>
+where
+    P: AsRef<Path>,
+{
+    let conn = new_connection(dst, pass).expect("Failed to open database");
+
+    let mut stmt = conn.prepare(
+        "SELECT
+            file_name, hash_value
+        FROM
+            files
+        WHERE
+                file_name LIKE '%' || ? || '%'
+            OR  hash_value LIKE ? || '%'",
+    )?;
+
+    let rows = stmt.query_map((target.clone(), target), |r| {
+        Ok((r.get(0).unwrap(), r.get(1).unwrap()))
+    })?;
 
     let mut entries: Vec<(String, String)> = Vec::new();
 
