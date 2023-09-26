@@ -3,7 +3,6 @@ use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
 };
-use std::io::Write;
 
 use clap::{Parser, Subcommand};
 use glob::{glob, Paths};
@@ -17,8 +16,6 @@ use super::{
     database,
     fs::{is_dir, list_files},
 };
-
-
 
 #[derive(Parser, Debug)]
 pub struct Cli {

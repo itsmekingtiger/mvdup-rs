@@ -1,9 +1,9 @@
-use anyhow::{anyhow, bail, Context, Result};
-
 use std::{
     fs::{self, metadata, read_dir},
     path::{Path, PathBuf},
 };
+
+use anyhow::{anyhow, Context, Result};
 
 pub fn list_files<P: AsRef<Path>>(dir_path: P, include_hidden_files: bool) -> Result<Vec<PathBuf>> {
     let paths = read_dir(dir_path)?

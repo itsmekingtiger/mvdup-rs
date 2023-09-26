@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::{Connection, Error, Error::QueryReturnedNoRows, OpenFlags, Result};
 
-
 /// For sqlite options, see:
 ///     https://www.sqlite.org/c3ref/open.html
 ///     https://www.sqlite.org/pragma.html
