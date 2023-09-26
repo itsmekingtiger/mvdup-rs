@@ -3,6 +3,7 @@ use std::{
     collections::{HashMap, HashSet},
     path::{Path, PathBuf},
 };
+use std::io::Write;
 
 use clap::{Parser, Subcommand};
 use glob::{glob, Paths};
@@ -16,6 +17,8 @@ use super::{
     database,
     fs::{is_dir, list_files},
 };
+
+
 
 #[derive(Parser, Debug)]
 pub struct Cli {
@@ -45,13 +48,13 @@ pub enum Commands {
     },
 }
 
-struct DuplicataionManager {
+struct DuplicationManager {
     entries: HashMap<String, DuplicationEntry>,
 }
 
-impl DuplicataionManager {
-    fn new() -> DuplicataionManager {
-        DuplicataionManager {
+impl DuplicationManager {
+    fn new() -> DuplicationManager {
+        DuplicationManager {
             entries: HashMap::new(),
         }
     }
@@ -103,6 +106,9 @@ pub fn mvdup(args: Cli) {
         }
     };
 
+
+    let passwd = rpassword::prompt_password("Your password: ").unwrap();
+
     let dst_dir = paths.pop().unwrap();
     let dst_dir = valid_destination(dst_dir.as_str());
 
@@ -114,9 +120,9 @@ pub fn mvdup(args: Cli) {
     }
     let srcs: Vec<_> = srcs.into_iter().filter_map(|e| e.ok()).collect();
 
-    database::open_at(dst_dir);
+    database::open_at(dst_dir, &passwd);
 
-    let mut manager = DuplicataionManager::new();
+    let mut manager = DuplicationManager::new();
     let mut take_count: usize = 0;
 
     for src in srcs {
@@ -143,7 +149,7 @@ pub fn mvdup(args: Cli) {
             let hash = super::hash::hash_of(&src).unwrap();
             println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
 
-            let (isdup, exist_filename) = super::database::is_duplicated(dst_dir, hash.as_str());
+            let (isdup, exist_filename) = super::database::is_duplicated(dst_dir, &passwd, hash.as_str());
 
             if isdup {
                 manager.put(hash, exist_filename, String::from(src.to_str().unwrap()))
@@ -151,7 +157,7 @@ pub fn mvdup(args: Cli) {
                 println!("rename {:?} → {:?}", src, dst);
 
                 match move_file(src, dst) {
-                    Ok(_) => super::database::add(dst_dir, hash, filename),
+                    Ok(_) => super::database::add(dst_dir, &passwd, hash, filename),
                     Err(err) => panic!("{err:?}"),
                 }
             }
@@ -210,17 +216,19 @@ pub fn update(dst_dir: String, verify: bool) {
         Err(err) => panic!("can not determind {dst_dir} is valid directory: {err}"),
     }
 
-    database::open_at(&dst_dir);
+    let passwd = rpassword::prompt_password("Your password: ").unwrap();
+
+    database::open_at(&dst_dir, &passwd);
 
     // Listing files, exists and saved
-    let exist_files: Vec<_> = list_files(&dst_dir)
+    let exist_files: Vec<_> = list_files(&dst_dir, false)
         .expect("failed to read list of files")
         .into_iter()
         .map(|p| p.file_name().unwrap().to_os_string().into_string().unwrap())
         .collect();
     let exist_files: HashSet<_> = HashSet::from_iter(exist_files);
 
-    let saved_files: Vec<_> = database::read_all(&dst_dir)
+    let saved_files: Vec<_> = database::read_all(&dst_dir, &passwd)
         .expect("failed to read database")
         .into_iter()
         .map(|f| f.0)

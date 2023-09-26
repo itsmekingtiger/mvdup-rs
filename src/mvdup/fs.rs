@@ -5,11 +5,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-pub fn list_files<P: AsRef<Path>>(dir_path: P) -> Result<Vec<PathBuf>> {
+pub fn list_files<P: AsRef<Path>>(dir_path: P, include_hidden_files: bool) -> Result<Vec<PathBuf>> {
     let paths = read_dir(dir_path)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|e| e.is_file())
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file())
+        .filter(|path| include_hidden_files || !path.starts_with("."))
         .collect();
 
     Ok(paths)
