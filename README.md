@@ -2,6 +2,12 @@
 
 ## Usage
 
+*데이터베이스 생성/초기화*
+
+```sh
+$ mvdup init .
+```
+
 *파일 이동*
 
 ```sh
@@ -82,3 +88,16 @@ $ mvdup rm --cached ../video 05d5880
 }
 ```
 
+
+
+
+| TIME LINE     | Language       | Linked Service | Remarks                           | 
+|---------------|----------------|----------------|-----------------------------------|
+| 14:42 ~ 14:44 | English        | SiHAS WWST     | cache related, I think            |
+| 15:00 ~ 15:01 | Korean         | SiHAS          | cache related, I think            |
+| 15:06 ~ 15:07 | Forgot To memo | -              | -                                 |
+| 15:27 ~ 15:07 | English        | SiHAS          |                                   |
+| 15:38 ~ 15:39 | English        | SiHAS          | Restarted app each try after here |
+| 15:40 ~ 15:41 | Korean         | SiHAS WWST     |                                   |
+| 15:41 ~ 15:42 | English        | SiHAS          |                                   |
+| 15:43 ~ 15:44 | Korean         | SiHAS          | What happened at here?            |

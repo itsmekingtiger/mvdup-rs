@@ -2,6 +2,7 @@ use std::{
     fs::{self, metadata, read_dir},
     path::{Path, PathBuf},
 };
+use std::ffi::OsStr;
 
 use anyhow::{anyhow, Context, Result};
 
@@ -44,7 +45,7 @@ pub fn move_file<P: AsRef<Path>>(src: P, dst: P) -> Result<()> {
 
     if dst.is_dir() {
         let filename =
-            filename_of(src).context(format!("can not extract filename from {src:?}",))?;
+            filename_of(src).context(format!("can not extract filename from {src:?}", ))?;
 
         let dst = dst.join(filename);
 
@@ -77,4 +78,11 @@ pub fn filename_of<P: AsRef<Path>>(path: P) -> Result<String> {
         .context("can not convert filename into string")?;
 
     Ok(filename.to_string())
+}
+
+pub fn extension_of<P: AsRef<Path>>(path: P) -> Option<String> {
+    Path::new(path)
+        .extension()
+        .and_then(OsStr::to_str)
+        .map(String::from)
 }

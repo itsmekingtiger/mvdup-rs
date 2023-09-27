@@ -6,11 +6,14 @@ use std::{
 
 use clap::{Parser, Subcommand};
 use glob::{glob, Paths};
+use rusqlite::DatabaseName;
 
 use crate::mvdup::{
     fs::{filename_of, is_regular_file, move_file},
     utils::StringUtils,
 };
+use crate::mvdup::database::DataBase;
+use crate::mvdup::fs::{extension_of, is_exist};
 
 use super::{
     database,
@@ -33,6 +36,9 @@ pub struct Cli {
     pub command: Option<Commands>,
 }
 
+
+
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Update files to database
@@ -52,6 +58,15 @@ pub enum Commands {
         /// 검색할 데이터베이스 경로
         path: Option<String>,
     },
+
+    Init {
+        /// Path of database
+        path: String,
+
+        /// Password of database
+        #[arg(long, value_name = "PASSWORD OF DATABASE")]
+        password: Option<String>,
+    }
 }
 
 struct DuplicationManager {
@@ -96,6 +111,19 @@ impl DuplicationEntry {
     }
 }
 
+pub fn init() {
+
+    let adsf: &str = "path";
+    // panic!("TODO");
+
+    if is_exist(adsf) {
+        panic!("Database already exists at {}!", adsf)
+    }
+
+    // DataBase::open()
+
+}
+
 pub fn mvdup(args: Cli) {
     let mut paths: Vec<String> = match args.source {
         Some(paths) => {
@@ -135,6 +163,7 @@ pub fn mvdup(args: Cli) {
         let src = PathBuf::from(src);
         {
             let filename = filename_of(&src).expect("can not convert filename into string");
+            let ext = extension_of(&src);
 
             if is_regular_file(src.as_path()).unwrap() == false {
                 println!(
@@ -155,9 +184,9 @@ pub fn mvdup(args: Cli) {
             let hash = super::hash::hash_of_as_stream(&src).unwrap();
             println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
 
-            let (isdup, exist_filename) = super::database::is_duplicated(dst_dir, &passwd, hash.as_str());
+            let (is_duplicated, exist_filename) = super::database::is_duplicated(dst_dir, &passwd, hash.as_str());
 
-            if isdup {
+            if is_duplicated {
                 manager.put(hash, exist_filename, String::from(src.to_str().unwrap()))
             } else {
                 println!("rename {:?} → {:?}", src, dst);
