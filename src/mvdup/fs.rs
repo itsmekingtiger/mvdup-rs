@@ -22,6 +22,11 @@ pub fn is_regular_file<P: AsRef<Path>>(path: P) -> Result<bool> {
     return Ok(metadata.is_file());
 }
 
+pub fn must_is_dir<P: AsRef<Path>>(path: P) -> bool {
+    let metadata = metadata(path).expect("we fucked");
+    return metadata.is_dir();
+}
+
 pub fn is_dir<P: AsRef<Path>>(path: P) -> Result<bool> {
     let metadata = metadata(path)?;
     return Ok(metadata.is_dir());
@@ -80,9 +85,25 @@ pub fn filename_of<P: AsRef<Path>>(path: P) -> Result<String> {
     Ok(filename.to_string())
 }
 
-pub fn extension_of<P: AsRef<Path>>(path: P) -> Option<String> {
-    Path::new(path)
+
+/// Extract extension of file.
+///
+/// # Examples
+///
+/// ```
+/// let s = "1.3 타입 검사의 원리 _ Jaemin Hong's Blog (2023. 9. 23. 오후 12_51_16)";
+/// assert_eq!(None, extension_of(s))
+/// ```
+pub fn extension_of(path: &Path) -> Option<String> {
+    let maybe_ext = path
         .extension()
         .and_then(OsStr::to_str)
-        .map(String::from)
+        .map(String::from)?;
+
+
+    if maybe_ext.chars().all(char::is_alphanumeric) {
+        return Some(maybe_ext);
+    }
+
+    None
 }

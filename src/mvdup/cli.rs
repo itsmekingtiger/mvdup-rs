@@ -12,8 +12,8 @@ use crate::mvdup::{
     fs::{filename_of, is_regular_file, move_file},
     utils::StringUtils,
 };
-use crate::mvdup::database::DataBase;
-use crate::mvdup::fs::{extension_of, is_exist};
+use crate::mvdup::database::{append_db_filename, DataBase};
+use crate::mvdup::fs::{extension_of, is_exist, must_is_dir};
 
 use super::{
     database,
@@ -22,25 +22,25 @@ use super::{
 
 #[derive(Parser, Debug)]
 pub struct Cli {
-    /// Source files
-    pub source: Option<Vec<String>>,
-
-    /// Destination directory
-    // pub destination: Option<String>,
-
-    /// Process first N files only
-    #[arg(long, value_name = "NUMBER OF FILES")]
-    pub take: Option<usize>,
-
     #[command(subcommand)]
-    pub command: Option<Commands>,
+    pub command: Commands,
 }
-
-
 
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    Add {
+        /// Source files
+        source: Option<Vec<String>>,
+
+        /// Destination directory
+        // pub destination: Option<String>,
+
+        /// Process first N files only
+        #[arg(long, value_name = "NUMBER OF FILES")]
+        take: Option<usize>,
+    },
+
     /// Update files to database
     Update {
         path: String,
@@ -59,14 +59,19 @@ pub enum Commands {
         path: Option<String>,
     },
 
+    OpenTest {
+        /// Path of database
+        path: String,
+    },
+
     Init {
         /// Path of database
         path: String,
 
         /// Password of database
-        #[arg(long, value_name = "PASSWORD OF DATABASE")]
-        password: Option<String>,
-    }
+        #[clap(short, long, value_name = "PASSWORD OF DATABASE", default_value_t = false)]
+        encrypt: bool,
+    },
 }
 
 struct DuplicationManager {
@@ -111,21 +116,65 @@ impl DuplicationEntry {
     }
 }
 
-pub fn init() {
-
-    let adsf: &str = "path";
-    // panic!("TODO");
-
-    if is_exist(adsf) {
-        panic!("Database already exists at {}!", adsf)
+pub fn init(path: String, encrypt: bool) {
+    if !is_exist(&path) {
+        panic!("Directory does not exists!")
     }
 
-    // DataBase::open()
+    if !must_is_dir(&path) {
+        panic!("Given path is not does not exists!")
+    }
 
+    // TODO: path could be target directory or explicit database path.
+    //       So we need to test is exist, is dir or files and other things.
+
+    let db_path = append_db_filename(&path);
+
+    if encrypt {
+        let input = rpassword::prompt_password("Set password: ").unwrap();
+        let confirm = rpassword::prompt_password("Confirm password: ").unwrap();
+
+        if input != confirm {
+            panic!("Passwords are not same!");
+        }
+
+        DataBase::init(&db_path, Some(input)).expect("Failed to initialize database");
+    } else {
+        DataBase::init(&db_path, None).expect("Failed to initialize database");
+    }
+
+    // Just to show to user
+    let mut abs_db_path = std::fs::canonicalize(&db_path)
+        .expect("What?")
+        .to_string_lossy()
+        .to_string(); // What is difference between to_string() and into_string()?
+
+    if cfg!(windows) {
+        abs_db_path = abs_db_path
+            .strip_prefix(r"\\?\")
+            .expect("Shity")
+            .parse()
+            .unwrap();
+    }
+
+    println!("Database initialized {}", abs_db_path);
 }
 
-pub fn mvdup(args: Cli) {
-    let mut paths: Vec<String> = match args.source {
+
+
+pub fn open_test(path: String) {
+    let db_path = append_db_filename(path);
+
+    println!("Opening database {:?}", db_path);
+    DataBase::try_open(db_path.as_ref()).expect("Failed to open database");
+    println!("Successfully open database");
+}
+
+pub fn mvdup(
+    source: Option<Vec<String>>,
+    take: Option<usize>,
+) {
+    let mut paths: Vec<String> = match source {
         Some(paths) => {
             if paths.len() < 2 {
                 println!("give me src and dst!");
@@ -140,9 +189,6 @@ pub fn mvdup(args: Cli) {
         }
     };
 
-
-    let passwd = rpassword::prompt_password("Your password: ").unwrap();
-
     let dst_dir = paths.pop().unwrap();
     let dst_dir = valid_destination(dst_dir.as_str());
 
@@ -154,7 +200,9 @@ pub fn mvdup(args: Cli) {
     }
     let srcs: Vec<_> = srcs.into_iter().filter_map(|e| e.ok()).collect();
 
-    database::open_at(dst_dir, &passwd);
+
+    let db_path = append_db_filename(dst_dir);
+    let database = DataBase::try_open(db_path.as_ref()).expect("Failed to open database");
 
     let mut manager = DuplicationManager::new();
     let mut take_count: usize = 0;
@@ -173,18 +221,19 @@ pub fn mvdup(args: Cli) {
                 continue;
             }
 
-            if let Some(take_n) = args.take {
+            if let Some(take_n) = take {
                 if take_count >= take_n {
                     break;
                 }
                 take_count += 1;
             }
 
-            let dst = PathBuf::from(dst_dir).join(&filename);
             let hash = super::hash::hash_of_as_stream(&src).unwrap();
+            let new_filename = [hash.clone(), ext.unwrap_or("".to_string())].join(".");
+            let dst = PathBuf::from(dst_dir).join(new_filename);
             println!("{} {}", src.to_str().unwrap(), hash.substring(0, 8));
 
-            let (is_duplicated, exist_filename) = super::database::is_duplicated(dst_dir, &passwd, hash.as_str());
+            let (is_duplicated, exist_filename) = database.is_duplicated(hash.as_str());
 
             if is_duplicated {
                 manager.put(hash, exist_filename, String::from(src.to_str().unwrap()))
@@ -192,7 +241,7 @@ pub fn mvdup(args: Cli) {
                 println!("rename {:?} → {:?}", src, dst);
 
                 match move_file(src, dst) {
-                    Ok(_) => super::database::add(dst_dir, &passwd, hash, filename),
+                    Ok(_) => database.add(hash, filename),
                     Err(err) => panic!("{err:?}"),
                 }
             }
@@ -253,7 +302,9 @@ pub fn update(dst_dir: String, verify: bool) {
 
     let passwd = rpassword::prompt_password("Your password: ").unwrap();
 
-    database::open_at(&dst_dir, &passwd);
+    let db_path = append_db_filename(&dst_dir);
+    let database = DataBase::try_open(db_path.as_ref()).expect("Failed to open database");
+
 
     // Listing files, exists and saved
     let exist_files: Vec<_> = list_files(&dst_dir, false)
@@ -263,7 +314,7 @@ pub fn update(dst_dir: String, verify: bool) {
         .collect();
     let exist_files: HashSet<_> = HashSet::from_iter(exist_files);
 
-    let saved_files: Vec<_> = database::read_all(&dst_dir, &passwd)
+    let saved_files: Vec<_> = database.read_all()
         .expect("failed to read database")
         .into_iter()
         .map(|f| f.0)
@@ -289,10 +340,11 @@ pub fn update(dst_dir: String, verify: bool) {
 pub fn find<S: AsRef<str>>(dst_dir: String, target: S) {
     let passwd = rpassword::prompt_password("Your password: ").unwrap();
 
-    database::open_at(&dst_dir, &passwd);
+    let db_path = append_db_filename(dst_dir);
+    let database = DataBase::try_open(db_path.as_ref()).expect("Failed to open database");
 
     let entries =
-        database::find(&dst_dir, &passwd, target.as_ref().to_string()).expect("failed to query database");
+        database.find(target.as_ref().to_string()).expect("failed to query database");
 
     let total = entries.len();
 
