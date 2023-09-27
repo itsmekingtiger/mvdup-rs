@@ -24,11 +24,11 @@ rusqlite = { version = "0.29", features = ["bundled-sqlcipher"] }
 > cd vcpkg
 
 # 패키지 설치
-> run ./bootstrap-vcpkg.bat
-> run ./vcpkg.exe install openssl-windows:x64-windows
-> run ./vcpkg.exe install openssl:x64-windows-static
-> run ./vcpkg.exe integrate install
-> run set VCPKGRS_DYNAMIC=1 (or simply set it as your environment variable)
+> ./bootstrap-vcpkg.bat -disableMetrics
+> ./vcpkg.exe install openssl-windows:x64-windows
+> ./vcpkg.exe install openssl:x64-windows-static
+> ./vcpkg.exe integrate install
+> set VCPKGRS_DYNAMIC=1 (or simply set it as your environment variable)
 
 # 환경변수에 추가
 > $env:OPENSSL_DIR = Resolve-Path .\installed\x64-windows-static\
