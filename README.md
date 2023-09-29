@@ -87,17 +87,3 @@ $ mvdup rm --cached ../video 05d5880
     "{hash-value-2}": "source-file-name-2-2",
 }
 ```
-
-
-
-
-| TIME LINE     | Language       | Linked Service | Remarks                           | 
-|---------------|----------------|----------------|-----------------------------------|
-| 14:42 ~ 14:44 | English        | SiHAS WWST     | cache related, I think            |
-| 15:00 ~ 15:01 | Korean         | SiHAS          | cache related, I think            |
-| 15:06 ~ 15:07 | Forgot To memo | -              | -                                 |
-| 15:27 ~ 15:07 | English        | SiHAS          |                                   |
-| 15:38 ~ 15:39 | English        | SiHAS          | Restarted app each try after here |
-| 15:40 ~ 15:41 | Korean         | SiHAS WWST     |                                   |
-| 15:41 ~ 15:42 | English        | SiHAS          |                                   |
-| 15:43 ~ 15:44 | Korean         | SiHAS          | What happened at here?            |
