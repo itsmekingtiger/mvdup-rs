@@ -116,7 +116,7 @@ impl DuplicationEntry {
     }
 }
 
-pub fn init(path: String, encrypt: bool) {
+pub fn handle_init(path: String, encrypt: bool) {
     if !is_exist(&path) {
         panic!("Directory does not exists!")
     }
@@ -162,7 +162,7 @@ pub fn init(path: String, encrypt: bool) {
 
 
 
-pub fn open_test(path: String) {
+pub fn handle_open_test(path: String) {
     let db_path = append_db_filename(path);
 
     println!("Opening database {:?}", db_path);
@@ -170,8 +170,8 @@ pub fn open_test(path: String) {
     println!("Successfully open database");
 }
 
-pub fn mvdup(
-    source: Option<Vec<String>>,
+pub fn handle_add(
+    source: Vec<String>,
     take: Option<usize>,
 ) {
     let mut paths: Vec<String> = match source {
@@ -293,7 +293,7 @@ fn get_sources<T: AsRef<str>>(path: T) -> Paths {
 
 /// Create database file if is not exists at given path.
 /// Then apply difference of file
-pub fn update(dst_dir: String, verify: bool) {
+pub fn handle_update(dst_dir: String, verify: bool) {
     match is_dir(&dst_dir) {
         Ok(true) => (),
         Ok(false) => panic!("{dst_dir} is not valid directory."),
@@ -337,7 +337,7 @@ pub fn update(dst_dir: String, verify: bool) {
     todo!()
 }
 
-pub fn find<S: AsRef<str>>(dst_dir: String, target: S) {
+pub fn handle_find<S: AsRef<str>>(dst_dir: String, target: S) {
     let passwd = rpassword::prompt_password("Your password: ").unwrap();
 
     let db_path = append_db_filename(dst_dir);

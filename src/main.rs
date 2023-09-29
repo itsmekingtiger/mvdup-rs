@@ -1,21 +1,23 @@
-mod mvdup;
-
-use crate::mvdup::cli::{update, Cli, Commands, init, open_test, mvdup};
 use clap::Parser;
-use mvdup::cli::find;
+
+use mvdup::cli::handle_find;
+
+use crate::mvdup::cli::{Cli, Commands, handle_add, handle_init, handle_open_test, handle_update};
+
+mod mvdup;
 
 fn main() {
     let cli = Cli::parse();
 
 
     match cli.command {
-        Commands::Add { source, take } => mvdup(source, take),
-        Commands::Update { path, verify } => update(path, verify),
+        Commands::Add { source, take } => handle_add(source, take),
+        Commands::Update { path, verify } => handle_update(path, verify),
         Commands::Grep { path, target } => {
             let path = path.unwrap_or(".".to_string());
-            find(path, target)
+            handle_find(path, target)
         }
-        Commands::Init { path, encrypt } => init(path, encrypt),
-        Commands::OpenTest { path } => open_test(path),
+        Commands::Init { path, encrypt } => handle_init(path, encrypt),
+        Commands::OpenTest { path } => handle_open_test(path),
     }
 }
