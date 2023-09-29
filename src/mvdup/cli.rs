@@ -1,12 +1,12 @@
 use core::panic;
 use std::{
     collections::{HashMap, HashSet},
-    path::{Path, PathBuf},
+    env,
+    path::{Path, PathBuf}
 };
 
 use clap::{Parser, Subcommand};
 use glob::{glob, Paths};
-use rusqlite::DatabaseName;
 
 use crate::mvdup::{
     fs::{filename_of, is_regular_file, move_file},
@@ -16,7 +16,6 @@ use crate::mvdup::database::{append_db_filename, DataBase};
 use crate::mvdup::fs::{extension_of, is_exist, must_is_dir};
 
 use super::{
-    database,
     fs::{is_dir, list_files},
 };
 
@@ -31,10 +30,11 @@ pub struct Cli {
 pub enum Commands {
     Add {
         /// Source files
-        source: Option<Vec<String>>,
+        source: Vec<String>,
 
         /// Destination directory
-        // pub destination: Option<String>,
+        #[arg(short, long, value_name = "DATABASE PATH")]
+        destination: Option<String>,
 
         /// Process first N files only
         #[arg(long, value_name = "NUMBER OF FILES")]
@@ -171,26 +171,15 @@ pub fn handle_open_test(path: String) {
 }
 
 pub fn handle_add(
-    source: Vec<String>,
+    paths: Vec<String>,
+    destination: Option<String>,
     take: Option<usize>,
 ) {
-    let mut paths: Vec<String> = match source {
-        Some(paths) => {
-            if paths.len() < 2 {
-                println!("give me src and dst!");
-                std::process::exit(-1);
-            } else {
-                paths
-            }
-        }
-        None => {
-            println!("give me src and dst!");
-            std::process::exit(-1);
-        }
-    };
 
-    let dst_dir = paths.pop().unwrap();
-    let dst_dir = valid_destination(dst_dir.as_str());
+    let dst_dir: &Path = &match destination {
+        Some(dst) => PathBuf::from(dst),
+        None => env::current_dir().unwrap(),
+    };
 
     let srcs: Vec<_> = paths.iter().map(get_sources).flatten().collect();
     for src in &srcs {
@@ -279,6 +268,11 @@ fn valid_destination<'a>(path: &'a str) -> &'a Path {
         panic!("can not open destination: {:?}", err);
     }
 
+    let mut path = PathBuf::new();
+    path.push("/asdf");
+
+    let v: &Path = &path;
+
     let is_dir = is_dir.unwrap();
     if !is_dir {
         panic!("destination is not file directory");
@@ -297,7 +291,7 @@ pub fn handle_update(dst_dir: String, verify: bool) {
     match is_dir(&dst_dir) {
         Ok(true) => (),
         Ok(false) => panic!("{dst_dir} is not valid directory."),
-        Err(err) => panic!("can not determind {dst_dir} is valid directory: {err}"),
+        Err(err) => panic!("can not determined {dst_dir} is valid directory: {err}"),
     }
 
     let passwd = rpassword::prompt_password("Your password: ").unwrap();

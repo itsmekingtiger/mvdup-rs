@@ -11,7 +11,7 @@ fn main() {
 
 
     match cli.command {
-        Commands::Add { source, take } => handle_add(source, take),
+        Commands::Add { source, destination, take } => handle_add(source, destination, take),
         Commands::Update { path, verify } => handle_update(path, verify),
         Commands::Grep { path, target } => {
             let path = path.unwrap_or(".".to_string());
